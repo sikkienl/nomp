@@ -1,5 +1,5 @@
 {
-    "name": "node-open-mining-portal",
+    "name": "nomp",
     "version": "0.0.4",
     "description": "An extremely efficient, highly scalable, all-in-one, easy to setup cryptocurrency mining pool",
     "keywords": [
@@ -10,15 +10,17 @@
         "poolserver",
         "bitcoin",
         "litecoin",
+        "neobytes",
         "scrypt"
     ],
-    "homepage": "https://github.com/zone117x/node-open-mining-portal",
+    "homepage": "https://github.com/sikkienl/nomp",
     "bugs": {
-        "url": "https://github.com/zone117x/node-open-mining-portal/issues"
+        "url": "https://github.com/sikkienl/nomp/issues"
     },
     "license": "GPL-2.0",
     "author": "Matthew Little",
     "contributors": [
+        "SikkieNL",
         "vekexasia",
         "TheSeven"
     ],
@@ -28,10 +30,10 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/zone117x/node-open-mining-portal.git"
+        "url": "https://github.com/sikkienl/nomp.git"
     },
     "dependencies": {
-        "stratum-pool": "https://github.com/zone117x/node-stratum-pool.git",
+        "stratum-pool": "https://github.com/sikkienl/node-stratum-pool.git",
         "dateformat": "1.0.12",
         "node-json-minify": "*",
         "redis": "0.12.1",
