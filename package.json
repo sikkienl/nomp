@@ -18,9 +18,9 @@
     "license": "GPL-2.0",
     "author": "Matthew Little",
     "contributors": [
+        "SikkieNL",
         "vekexasia",
-        "TheSeven",
-        "SikkieNL"
+        "TheSeven"
     ],
     "main": "init.js",
     "scripts": {
