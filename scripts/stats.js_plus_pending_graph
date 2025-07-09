@@ -32,7 +32,7 @@ function buildChartData(){
 
     for (var i = 0; i < statData.length; i++) {
         var time = statData[i].time * 1000;
-                for (var f = 0; f < poolKeys.length; f++){
+		for (var f = 0; f < poolKeys.length; f++){
             var pName = poolKeys[f];
             var a = pools[pName] = (pools[pName] || {
                 hashrate: [], pending: []
@@ -58,53 +58,39 @@ function buildChartData(){
              key: pool,
              values: pools[pool].pending
          });
-                $('#statsHashrateAvg' + pool).text(getReadableHashRateString(calculateAverageHashrate(pool)));
+		$('#statsHashrateAvg' + pool).text(getReadableHashRateString(calculateAverageHashrate(pool)));
     }
 }
 
 function calculateAverageHashrate(pool) {
-                var count = 0;
-                var total = 1;
-                var avg = 0;
-                for (var i = 0; i < poolHashrateData.length; i++) {
-                        count = 0;
-                        for (var ii = 0; ii < poolHashrateData[i].values.length; ii++) {
-                                if (pool == null || poolHashrateData[i].key === pool) {
-                                        count++;
-                                        avg += parseFloat(poolHashrateData[i].values[ii][1]);
-                                }
-                        }
-                        if (count > total)
-                                total = count;
-                }
-                avg = avg / total;
-                return avg;
+		var count = 0;
+		var total = 1;
+		var avg = 0;
+		for (var i = 0; i < poolHashrateData.length; i++) {
+			count = 0;
+			for (var ii = 0; ii < poolHashrateData[i].values.length; ii++) {
+				if (pool == null || poolHashrateData[i].key === pool) {
+					count++;
+					avg += parseFloat(poolHashrateData[i].values[ii][1]);
+				}
+			}
+			if (count > total)
+				total = count;
+		}
+		avg = avg / total;
+		return avg;
 }
 
 function getReadableHashRateString(hashrate){
-        hashrate = (hashrate * 1000000);
-        if (hashrate < 1000000) {
-                return '0 H/s';
-        }
-    var byteUnits = [' H/s', ' KH/s', ' MH/s', ' GH/s', ' TH/s', ' PH/s', ' EH/s', ' ZH/s', ' YH/s'];
+	hashrate = (hashrate * 1000000);
+	if (hashrate < 1000000) {
+		return '0 Hash/s';
+		//return (Math.round(hashrate / 1000) / 1000 ).toFixed(2)+' Sol/s';
+	}
+    var byteUnits = [ ' H/s', ' KH/s', ' MH/s', ' GH/s', ' TH/s', ' PH/s' ];
     var i = Math.floor((Math.log(hashrate/1000) / Math.log(1000)) - 1);
     hashrate = (hashrate/1000) / Math.pow(1000, i + 1);
     return hashrate.toFixed(2) + byteUnits[i];
- }
-
- function getReadableLuckTime(lucktime){
-    var luck = lucktime;
-    var timeUnits = [ ' Days', ' Hours', ' Minutes' ];
-    if (luck < 1) {
-        luck = luck * 24;
-        if (luck < 1) {
-            luck = luck * 60;
-            return luck.toFixed(2) + timeUnits[2];
-        } else {
-            return luck.toFixed(2) + timeUnits[1];
-        }
-    }
-    return luck.toFixed(3) + timeUnits[0];
 }
 
 function timeOfDayFormat(timestamp){
@@ -138,6 +124,7 @@ function displayCharts(){
             .x(function(d){ return d[0] })
             .y(function(d){ return d[1] })
             .useInteractiveGuideline(true);
+
         poolPendingChart.xAxis.tickFormat(timeOfDayFormat);
 
         poolPendingChart.yAxis.tickFormat(function(d){
@@ -157,32 +144,15 @@ function triggerChartUpdates(){
 
 nv.utils.windowResize(triggerChartUpdates);
 
-function rebuildAllChart() {
-    $.getJSON('/api/pool_stats', function(data){
-        statData = data;
-        buildChartData();
-        displayCharts();
-    });
-}
-rebuildAllChart();
-
-var poolChartHidden = false;
+$.getJSON('/api/pool_stats', function(data){
+    statData = data;
+    buildChartData();
+    displayCharts();
+});
 
 statsSource.addEventListener('message', function(e){
-    if (document.hidden) {
-        poolChartHidden = true;
-        return;
-    }
-
-    if (poolChartHidden) {
-        poolChartHidden = false;
-        rebuildAllChart();
-        return;
-    }
-
     var stats = JSON.parse(e.data);
     statData.push(stats);
-    if (statData.length > 482) statData.shift();
 
     var newPoolAdded = (function(){
         for (var p in stats.pools){
@@ -204,7 +174,7 @@ statsSource.addEventListener('message', function(e){
                 if (poolHashrateData[i].key === pool) {
                     poolHashrateData[i].values.shift();
                     poolHashrateData[i].values.push([time, pool in stats.pools ? stats.pools[pool].hashrate : 0]);
-                                        $('#statsHashrateAvg' + pool).text(getReadableHashRateString(calculateAverageHashrate(pool)));
+					$('#statsHashrateAvg' + pool).text(getReadableHashRateString(calculateAverageHashrate(pool)));
                     break;
                 }
             }

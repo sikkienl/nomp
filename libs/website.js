@@ -1,4 +1,4 @@
-
+var https = require('https');
 var fs = require('fs');
 var path = require('path');
 
@@ -8,7 +8,6 @@ var redis = require('redis');
 
 var dot = require('dot');
 var express = require('express');
-var bodyParser = require('body-parser');
 var compress = require('compression');
 
 var Stratum = require('stratum-pool');
@@ -41,7 +40,9 @@ module.exports = function(logger){
         'workers.html': 'workers',
         'api.html': 'api',
         'admin.html': 'admin',
-        'mining_key.html': 'mining_key'
+        'mining_key.html': 'mining_key',
+        'miner_stats.html': 'miner_stats',
+        'payments.html': 'payments'
     };
 
     var pageTemplates = {};
@@ -51,7 +52,6 @@ module.exports = function(logger){
 
     var keyScriptTemplate = '';
     var keyScriptProcessed = '';
-
 
     var processTemplates = function(){
 
@@ -94,13 +94,19 @@ module.exports = function(logger){
     };
 
 
-    //If an html file was changed reload it
-    watch('website', function(filename){
-        var basename = path.basename(filename);
+    // if an html file was changed reload it
+    /* requires node-watch 0.5.0 or newer */
+    watch(['./website', './website/pages'], function(evt, filename){
+        var basename;
+        // support older versions of node-watch automatically
+        if (!filename && evt)
+            basename = path.basename(evt);
+        else
+            basename = path.basename(filename);
+        
         if (basename in pageFiles){
-            console.log(filename);
             readPageFiles([basename]);
-            logger.debug(logSystem, 'Server', 'Reloaded file ' + basename);
+            logger.special(logSystem, 'Server', 'Reloaded file ' + basename);
         }
     });
 
@@ -123,11 +129,13 @@ module.exports = function(logger){
 
     setInterval(buildUpdatedWebsite, websiteConfig.stats.updateInterval * 1000);
 
-
     var buildKeyScriptPage = function(){
         async.waterfall([
             function(callback){
                 var client = redis.createClient(portalConfig.redis.port, portalConfig.redis.host);
+                if (portalConfig.redis.password) {
+                    client.auth(portalConfig.redis.password);
+                }
                 client.hgetall('coinVersionBytes', function(err, coinBytes){
                     if (err){
                         client.quit();
@@ -206,13 +214,58 @@ module.exports = function(logger){
         });
 
     };
-    buildKeyScriptPage();
 
     var getPage = function(pageId){
         if (pageId in pageProcessed){
             var requestedPage = pageProcessed[pageId];
             return requestedPage;
         }
+    };
+
+    var minerpage = function(req, res, next){
+        var address = req.params.address || null;
+        if (address != null) {
+			address = address.split(".")[0];
+            portalStats.getBalanceByAddress(address, function(){
+                processTemplates();
+		res.header('Content-Type', 'text/html');
+                res.end(indexesProcessed['miner_stats']);
+            });
+        }
+        else
+            next();
+    };
+
+    var payout = function(req, res, next){
+        var address = req.params.address || null;
+        if (address != null){
+            portalStats.getPayout(address, function(data){
+                res.write(data.toString());
+                res.end();
+            });
+        }
+        else
+            next();
+    };
+
+    var shares = function(req, res, next){
+        portalStats.getCoins(function(){
+            processTemplates();
+            res.end(indexesProcessed['user_shares']);
+
+        });
+    };
+
+    var usershares = function(req, res, next){
+        var coin = req.params.coin || null;
+        if(coin != null){
+            portalStats.getCoinTotals(coin, null, function(){
+                processTemplates();
+                res.end(indexesProcessed['user_shares']);
+            });
+        }
+        else
+            next();
     };
 
     var route = function(req, res, next){
@@ -230,8 +283,8 @@ module.exports = function(logger){
 
     var app = express();
 
-
-    app.use(bodyParser.json());
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
 
     app.get('/get_page', function(req, res, next){
         var requestedPage = getPage(req.query.id);
@@ -242,10 +295,11 @@ module.exports = function(logger){
         next();
     });
 
-    app.get('/key.html', function(req, res, next){
-        res.end(keyScriptProcessed);
-    });
-
+    //app.get('/stats/shares/:coin', usershares);
+    //app.get('/stats/shares', shares);
+	//app.get('/payout/:address', payout);
+    app.use(compress());
+    app.get('/workers/:address', minerpage);
     app.get('/:page', route);
     app.get('/', route);
 
@@ -260,7 +314,7 @@ module.exports = function(logger){
             if (portalConfig.website.adminCenter.password === req.body.password)
                 portalApi.handleAdminApiRequest(req, res, next);
             else
-                res.send(401, JSON.stringify({error: 'Incorrect Password'}));
+                res.status(401).json({error: 'Incorrect Password'});
 
         }
         else
@@ -273,15 +327,27 @@ module.exports = function(logger){
 
     app.use(function(err, req, res, next){
         console.error(err.stack);
-        res.send(500, 'Something broke!');
+        res.status(500).send('Something broke!');
     });
 
     try {
-        app.listen(portalConfig.website.port, portalConfig.website.host, function () {
+        if (portalConfig.website.tlsOptions && portalConfig.website.tlsOptions.enabled === true) {
+            var TLSoptions = {
+              key: fs.readFileSync(portalConfig.website.tlsOptions.key),
+              cert: fs.readFileSync(portalConfig.website.tlsOptions.cert)
+            };
+
+            https.createServer(TLSoptions, app).listen(portalConfig.website.port, portalConfig.website.host, function() {
+                logger.debug(logSystem, 'Server', 'TLS Website started on ' + portalConfig.website.host + ':' + portalConfig.website.port);
+            });        
+        } else {
+            app.listen(portalConfig.website.port, portalConfig.website.host, function () {
             logger.debug(logSystem, 'Server', 'Website started on ' + portalConfig.website.host + ':' + portalConfig.website.port);
-        });
+          });
+        }
     }
     catch(e){
+        console.log(e)
         logger.error(logSystem, 'Server', 'Could not start website on ' + portalConfig.website.host + ':' + portalConfig.website.port
             +  ' - its either in use or you do not have permission');
     }
