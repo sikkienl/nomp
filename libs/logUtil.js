@@ -45,7 +45,7 @@ var PoolLogger = function (configuration) {
             subcat = realSubCat;
         }
 
-        var entryDesc = dateFormat(new Date(), 'yyyy-mm-dd HH:MM:ss') + ' [' + system + ']\t';
+        var entryDesc = dateFormat(new Date(), 'yyyy/mm/dd HH:MM:ss') + ' [' + system + ']\t';
         if (logColors) {
             entryDesc = severityToColor(severity, entryDesc);
 
@@ -55,8 +55,8 @@ var PoolLogger = function (configuration) {
 
             if (subcat)
                 logString += ('(' + subcat + ') ').bold.grey;
-
-            logString += text.grey;
+            if (text)
+                logString += text.grey;
         }
         else {
             var logString =

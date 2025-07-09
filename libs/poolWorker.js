@@ -13,13 +13,15 @@ module.exports = function(logger){
     var portalConfig = JSON.parse(process.env.portalConfig);
 
     var forkId = process.env.forkId;
-    
+
     var pools = {};
 
     var proxySwitch = {};
 
     var redisClient = redis.createClient(portalConfig.redis.port, portalConfig.redis.host);
-
+    if (portalConfig.redis.password) {
+        redisClient.auth(portalConfig.redis.password);
+    }
     //Handle messages from master process sent via IPC
     process.on('message', function(message) {
         switch(message.type){
@@ -69,10 +71,10 @@ module.exports = function(logger){
 
                 if (newPool) {
                     oldPool.relinquishMiners(
-                        function (miner, cback) { 
+                        function (miner, cback) {
                             // relinquish miners that are attached to one of the "Auto-switch" ports and leave the others there.
                             cback(proxyPorts.indexOf(miner.client.socket.localPort.toString()) !== -1)
-                        }, 
+                        },
                         function (clients) {
                             newPool.attachMiners(clients);
                         }
@@ -134,25 +136,15 @@ module.exports = function(logger){
                 if (poolOptions.validateWorkerUsername !== true)
                     authCallback(true);
                 else {
-                    if (workerName.length === 40) {
-                        try {
-                            new Buffer(workerName, 'hex');
-                            authCallback(true);
-                        }
-                        catch (e) {
-                            authCallback(false);
-                        }
-                    }
-                    else {
-                        pool.daemon.cmd('validateaddress', [workerName], function (results) {
+                        pool.daemon.cmd('validateaddress', [String(workerName).split(".")[0]], function (results) {
                             var isValid = results.filter(function (r) {
-                                return r.response.isvalid
+                                if (r.response)
+                                    return r.response.isvalid;
+                                return false;
                             }).length > 0;
                             authCallback(isValid);
                         });
                     }
-
-                }
             };
 
             handlers.share = function(isValidShare, isValidBlock, data){
@@ -177,7 +169,10 @@ module.exports = function(logger){
 
         var pool = Stratum.createPool(poolOptions, authorizeFN, logger);
         pool.on('share', function(isValidShare, isValidBlock, data){
-
+		
+			if(data.worker != undefined)
+				data.worker = data.worker.replace(/:/g,"-")           
+            
             var shareData = JSON.stringify(data);
 
             if (data.blockHash && !isValidBlock)
@@ -187,17 +182,21 @@ module.exports = function(logger){
                 logger.debug(logSystem, logComponent, logSubCat, 'Block found: ' + data.blockHash + ' by ' + data.worker);
 
             if (isValidShare) {
-                if(data.shareDiff > 1000000000)
+                if(data.shareDiff > 1000000000) {
                     logger.debug(logSystem, logComponent, logSubCat, 'Share was found with diff higher than 1.000.000.000!');
-                else if(data.shareDiff > 1000000)
-                    logger.debug(logSystem, logComponent, logSubCat, 'Share was found with diff higher than 1.000.000!');
+                //} else if(data.shareDiff > 1000000) {
+                //    logger.debug(logSystem, logComponent, logSubCat, 'Share was found with diff higher than 1.000.000!');
+                }
                 logger.debug(logSystem, logComponent, logSubCat, 'Share accepted at diff ' + data.difficulty + '/' + data.shareDiff + ' by ' + data.worker + ' [' + data.ip + ']' );
-
-            } else if (!isValidShare)
+            } else if (!isValidShare) {
                 logger.debug(logSystem, logComponent, logSubCat, 'Share rejected: ' + shareData);
+            }
 
-            handlers.share(isValidShare, isValidBlock, data)
+            // handle the share
+            handlers.share(isValidShare, isValidBlock, data);
 
+            // send to master for pplnt time tracking
+            process.send({type: 'shareTrack', thread:(parseInt(forkId)+1), coin:poolOptions.coin.name, isValidShare:isValidShare, isValidBlock:isValidBlock, data:data});
 
         }).on('difficultyUpdate', function(workerName, diff){
             logger.debug(logSystem, logComponent, logSubCat, 'Difficulty update to diff ' + diff + ' workerName=' + JSON.stringify(workerName));
@@ -273,7 +272,7 @@ module.exports = function(logger){
                             + switchName + ' from '
                             + socket.remoteAddress + ' on '
                             + port + ' routing to ' + currentPool);
-                        
+
                         if (pools[currentPool])
                             pools[currentPool].getStratumServer().handleNewClient(socket);
                         else
@@ -304,7 +303,7 @@ module.exports = function(logger){
     };
 
     //
-    // Called when stratum pool emits its 'started' event to copy the initial diff and vardiff 
+    // Called when stratum pool emits its 'started' event to copy the initial diff and vardiff
     // configuation for any proxy switching ports configured into the stratum pool object.
     //
     this.setDifficultyForProxyPort = function(pool, coin, algo) {
@@ -317,7 +316,7 @@ module.exports = function(logger){
             var switchAlgo = portalConfig.switching[switchName].algorithm;
             if (pool.options.coin.algorithm !== switchAlgo) return;
 
-            // we know the switch configuration matches the pool's algo, so setup the diff and 
+            // we know the switch configuration matches the pool's algo, so setup the diff and
             // vardiff for each of the switch's ports
             for (var port in portalConfig.switching[switchName].ports) {
 
@@ -325,7 +324,7 @@ module.exports = function(logger){
                     pool.setVarDiff(port, portalConfig.switching[switchName].ports[port].varDiff);
 
                 if (portalConfig.switching[switchName].ports[port].diff){
-                    if (!pool.options.ports.hasOwnProperty(port)) 
+                    if (!pool.options.ports.hasOwnProperty(port))
                         pool.options.ports[port] = {};
                     pool.options.ports[port].diff = portalConfig.switching[switchName].ports[port].diff;
                 }
