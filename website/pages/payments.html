@@ -1,0 +1,89 @@
+<style>
+    #topPool {
+        padding: 18px 18px 0px 18px;
+    }
+
+    .poolWrapper {
+        background: #ddd;
+        border: solid 1px #c7c7c7;
+        border-radius: 5px;
+        padding: 5px;
+        margin-bottom: 18px;
+    }
+
+    .poolLabel {
+        font-size: 1.2em;
+        text-align: center;
+        padding: 4px;
+    }
+
+    table {
+        background: #ddd;
+        width: 100%;
+    }
+    table th{
+        background: #c7c7c7;
+    }
+    .block-cell {
+        max-width: 400px;
+        word-break: break-all;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+{{ function capitalizeFirstLetter(t){return t.charAt(0).toUpperCase()+t.slice(1)} }}
+{{ function readableDate(a) {
+var d = new Date(parseInt(a));
+} }}
+{{ for(var pool in it.stats.pools) { }}
+<div id="topPool">
+    <div class="poolWrapper">
+        <div class="poolLabel">
+            {{=capitalizeFirstLetter(it.stats.pools[pool].name)}} Payments &nbsp;&nbsp;
+            <span style="float:right;">
+                <small>
+                    <i class="fas fa-cubes fa-fw"></i> <span
+                        id="statsValidBlocks{{=pool}}">{{=it.stats.pools[pool].poolStats.validBlocks}}</span> Blocks
+                    &nbsp;&nbsp;
+                    <i class="fas fa-money-bill fa-fw"></i> Paid: <span
+                        id="statsTotalPaid{{=pool}}">{{=(parseFloat(it.stats.pools[pool].poolStats.totalPaid)).toFixed(8)}}</span>
+                    {{=it.stats.pools[pool].symbol}}
+                </small>&nbsp;&nbsp;
+        </div>
+        <div class="poolMinerTable">
+            <table class="pure-table pure-table-horizontal">
+                <thead>
+                    <tr>
+                        <th>Blocks</th>
+                        <th>Time</th>
+                        <th>Miners</th>
+                        <th>Shares</th>
+                        <th>Payment Amount</th>
+                        <th>Total Payment Amount</th>
+                    </tr>
+                </thead>
+                {{ for(var p in it.stats.pools[pool].payments) { }}
+                <tr class="pure-table-odd">
+                    <td class="block-cell">
+                        {{ if (it.poolsConfigs[pool].coin.explorer && it.poolsConfigs[pool].coin.explorer.txURL) { }}
+                        <a href="{{=it.poolsConfigs[pool].coin.explorer.txURL + it.stats.pools[pool].payments[p].txid}}"
+                            title="View transaction" target="_blank">{{=it.stats.pools[pool].payments[p].blocks}}</a>
+                        {{ } else { }}
+                        {{=it.stats.pools[pool].payments[p].blocks}}
+                        {{ } }}
+                    </td>
+                    <td>{{=readableDate(it.stats.pools[pool].payments[p].time)}}</td>
+                    <td>{{=it.stats.pools[pool].payments[p].miners}}</td>
+                    <td>{{=Math.round(it.stats.pools[pool].payments[p].shares)}}</td>
+                    <td>{{ for(var a in it.stats.pools[pool].payments[p].amounts){ }}
+                        {{=a.substr(0,4)+"****"+a.substr(30)}}：<a
+                            style='color:red;'>{{=it.stats.pools[pool].payments[p].amounts[a]}} </a>
+                        {{=it.stats.pools[pool].symbol}}<br>{{ } }}</td>
+                    <td>{{=it.stats.pools[pool].payments[p].paid}} {{=it.stats.pools[pool].symbol}}</td>
+                </tr>
+                {{ } }}
+            </table>
+        </div>
+    </div>
+</div>
+{{ } }}
