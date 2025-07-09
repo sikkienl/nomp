@@ -1,10 +1,48 @@
-<div>
-    API Docs here
+<style>
+    #topPool {
+        padding: 18px 18px 0px 18px;
+    }
 
-<ul>
-<li>/stats - raw json statistic</li>
-<li>/pool_stats - historical time per pool json </li>
-<li>/live_stats - live stats </li>
+    #topPool>div>div>svg {
+        display: block;
+        height: 280px;
+    }
 
-</ul>
+    .poolWrapper {
+        background: #ddd;
+        border: solid 1px #c7c7c7;
+        border-radius: 5px;
+        padding: 5px;
+        margin-bottom: 18px;
+    }
+
+    .poolLabel {
+        font-size: 1.2em;
+        text-align: center;
+        padding: 4px;
+    }
+
+    .poolApi {
+        background: #eee;
+        border: solid 1px #c7c7c7;
+        font-size: 1.2em;
+        text-align: left;
+        padding: 4px;
+    }
+</style>
+
+<div id="topPool">
+    <div class="poolWrapper">
+        <div class="poolLabel">
+            API - The API is work in progress and is subject to change during development.
+        </div>
+        <div class="poolApi">
+            <div><a href="/api/stats">/stats</a> global pool stats</div>
+            <div><a href="/api/blocks">/blocks</a> global block stats</div>
+            <div><a href="/api/pool_stats">/pool_stats</a> - historical stats</div>
+            <div><a href="/api/payments">/payments</a> - payment history</div>
+            <div><a href="/api/worker_stats?addr">/worker_stats?addr</a> - historical time per pool json </div>
+            <div><a href="/api/live_stats">/live_stats</a> - live stats </div>
+        </div>
+    </div>
 </div>
