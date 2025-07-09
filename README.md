@@ -104,7 +104,7 @@ didn't follow the instructions in this README. Please __read the usage instructi
 
 If your pool uses NOMP let us know and we will list your website here.
 
-##### Some pools using NOMP or node-stratum-module:
+#### Some pools using NOMP or node-stratum-module:
 * ----
 
 Usage
@@ -113,7 +113,7 @@ Usage
 
 #### Requirements
 * Coin daemon(s) (find the coin's repo and build latest version from source)
-* [Node.js](http://nodejs.org/) v0.10+ ([follow these installation instructions](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager))
+* [Node.js](http://nodejs.org/) v16.11+ ([follow these installation instructions](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager))
 * [Redis](http://redis.io/) key-value store v2.6+ ([follow these instructions](http://redis.io/topics/quickstart))
 
 ##### Seriously
@@ -149,9 +149,14 @@ a good pool operator. For starters be sure to read:
 Clone the repository and run `npm update` for all the dependencies to be installed:
 
 ```bash
+sudo apt-get install build-essential libsodium-dev libboost-all-dev libgmp3-dev node-gyp libssl-dev -y
+sudo apt install nodejs npm -y
+sudo npm install n -g
+sudo n 16
+sudo apt purge nodejs npm -y
 git clone https://github.com/sikkienl/nomp.git
 cd nomp
-npm update
+npm install
 ```
 
 #### 2) Configuration
@@ -483,7 +488,7 @@ node [path to cli.js] [coin name in config] [block hash symbol]
 ```
 Example: inside `neobytes.conf` add the line
 ```
-blocknotify=node /home/nomp/scripts/cli.js blocknotify dogecoin %s
+blocknotify=node /home/nomp/scripts/cli.js blocknotify neobytes %s
 ```
 
 Alternatively, you can use a more efficient block notify script written in pure C. Build and usage instructions
@@ -493,7 +498,7 @@ are commented in [scripts/blocknotify.c](scripts/blocknotify.c).
 #### 3) Start the portal
 
 ```bash
-node init.js
+npm start
 ```
 
 ###### Optional enhancements for your awesome new mining pool server setup:
@@ -517,6 +522,9 @@ the `node-stratum-pool` and `node-multi-hashing` modules, and any config files t
 
 Credits
 -------
+### ZNY-NOMP
+* [ROZ-MOFUMOFU-ME](https://github.com/ROZ-MOFUMOFU-ME)
+
 ### NOMP
 * [Matthew Little / zone117x](https://github.com/zone117x) - developer of NOMP
 * [Jerry Brady / mintyfresh68](https://github.com/bluecircle) - got coin-switching fully working and developed proxy-per-algo feature
