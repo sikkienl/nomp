@@ -336,6 +336,9 @@ Here is an example of the required fields:
     "symbol": "NBY",
     "algorithm": "scrypt",
 
+    // Coinbase value is what is added to a block when it is mined, set this to your pool name so 
+    // explorers can see which pool mined a particular block.
+    "coinbase": "Neobytes",
     /* Magic value only required for setting up p2p block notifications. It is found in the daemon
        source code as the pchMessageStart variable.
        For example, neobytes mainnet magic: https://github.com/neobytes-project/neobytes/blob/v0.12.2.x/src/chainparams.cpp#L118
@@ -354,7 +357,7 @@ see [these instructions](//github.com/sikkienl/node-stratum-pool#module-usage).
 
 
 ##### Pool config
-Take a look at the example json file inside the `pool_configs` directory. Rename it to `yourcoin.json` and change the
+Take a look at the example json file inside the `pool_configs` directory. Rename it to `neobytes.json` and change the
 example fields to fit your setup.
 
 Description of options:
@@ -389,20 +392,21 @@ Description of options:
            payments less frequently (they dislike). Opposite for a lower minimum payment. */
         "minimumPayment": 0.01,
 
-        /* This daemon is used to send out payments. It MUST be for the daemon that owns the
-           configured 'address' that receives the block rewards, otherwise the daemon will not
-           be able to confirm blocks or send out payments. */
         "daemon": {
-            "host": "127.0.0.1",
-            "port": 1427,
-            "user": "neobytesrpc",
-            "password": "password"
+            "host": "127.0.0.1", // Coin daemon RPC server host.
+            "port": 1427, // Coin daemon RPC server port.
+            "user": "neobytesrpc", // Username for daemon RPC server.
+            "password": "password" // Password for daemon RPC server.
         }
     },
 
-    /* Each pool can have as many ports for your miners to connect to as you wish. Each port can
-       be configured to use its own pool difficulty and variable difficulty settings. varDiff is
-       optional and will only be used for the ports you configure it for. */
+    "tlsOptions": {
+        "enabled": false, // Enables TLS/SSL; set to true to secure connections.
+        "serverKey": "", // Path to the server key file.
+        "serverCert": "", // Path to the server certificate file.
+        "ca": "" // Path to the certificate authority file.
+    },
+
     "ports": {
         "3032": { //A port for your miners to connect to
             "diff": 32, //the pool difficulty for this port
@@ -424,59 +428,38 @@ Description of options:
 
     /* More than one daemon instances can be setup in case one drops out-of-sync or dies. */
     "daemons": [
-        {   //Main daemon instance
-            "host": "127.0.0.1",
-            "port": 1427,
-            "user": "neobytesrpc",
-            "password": "password"
+        {
+            "host": "127.0.0.1", // Host where the coin daemon is running.
+            "port": 1427, // Port on which the coin daemon is listening.
+            "user": "neobytesrpc", // Username for accessing the coin daemon.
+            "password": "password" // Password for accessing the coin daemon.
         }
     ],
 
-    /* This allows the pool to connect to the daemon as a node peer to receive block updates.
-       It may be the most efficient way to get block updates (faster than polling, less
-       intensive than blocknotify script). It requires the additional field "peerMagic" in
-       the coin config. */
     "p2p": {
-        "enabled": false,
-
-        /* Host for daemon */
-        "host": "127.0.0.1",
-
-        /* Port configured for daemon (this is the actual peer port not RPC port) */
-        "port": 1428,
-
-        /* If your coin daemon is new enough (i.e. not a shitcoin) then it will support a p2p
-           feature that prevents the daemon from spamming our peer node with unnecessary
-           transaction data. Assume its supported but if you have problems try disabling it. */
-        "disableTransactions": true
+        "enabled": true, // Enables P2P mode.
+        "host": "127.0.0.1", // Host for the P2P server.
+        "port": 1428, // Port for the P2P server.
+        "disableTransactions": true // Disables transaction messages in P2P mode.
     },
-    
-    /* Enabled this mode and shares will be inserted into in a MySQL database. You may also want
-       to use the "emitInvalidBlockHashes" option below if you require it. The config options
-       "redis" and "paymentProcessing" will be ignored/unused if this is enabled. */
+
     "mposMode": {
-        "enabled": false,
-        "host": "127.0.0.1", //MySQL db host
-        "port": 3306, //MySQL db port
-        "user": "me", //MySQL db user
-        "password": "mypass", //MySQL db password
-        "database": "ltc", //MySQL db database name
-
-        /* Checks for valid password in database when miners connect. */
-        "checkPassword": true,
-
-        /* Unregistered workers can automatically be registered (added to database) on stratum
-           worker authentication if this is true. */
-        "autoCreateWorker": false
+        "enabled": false, // Enables MPOS compatibility mode.
+        "host": "127.0.0.1", //MySQL database host for MPOS mode.
+        "port": 3306, //MySQL database port.
+        "user": "me", //MySQL database user.
+        "password": "mypass", //MySQL database password.
+        "database": "ltc", //MySQL database database name.
+        "checkPassword": true, // Enables password checking for miners.
+        "autoCreateWorker": false // Automatically creates a worker if it doesn't exist.
     }
 }
-
-````
+```
 
 You can create as many of these pool config files as you want (such as one pool per coin you which to operate).
 If you are creating multiple pools, ensure that they have unique stratum ports.
 
-For more information on these configuration options see the [pool module documentation](https://github.com/zone117x/node-stratum-pool#module-usage)
+For more information on these configuration options see the [pool module documentation](https://github.com/sikkienl/node-stratum-pool#module-usage)
 
 
 
@@ -503,7 +486,7 @@ npm start
 
 ###### Optional enhancements for your awesome new mining pool server setup:
 * Use something like [forever](https://github.com/nodejitsu/forever) to keep the node script running
-in case the master process crashes. 
+in case the master process crashes.
 * Use something like [redis-commander](https://github.com/joeferner/redis-commander) to have a nice GUI
 for exploring your redis database.
 * Use something like [logrotator](http://www.thegeekstuff.com/2010/07/logrotate-examples/) to rotate log
@@ -517,7 +500,7 @@ the `node-stratum-pool` and `node-multi-hashing` modules, and any config files t
 * Inside your NOMP directory (where the init.js script is) do `git pull` to get the latest NOMP code.
 * Remove the dependenices by deleting the `node_modules` directory with `rm -r node_modules`.
 * Run `npm update` to force updating/reinstalling of the dependencies.
-* Compare your `config.json` and `pool_configs/coin.json` configurations to the latest example ones in this repo or the ones in the setup instructions where each config field is explained. You may need to modify or add any new changes.
+* Compare your `config.json` and `pool_configs/coin.json` configurations to the latest example ones in this repo or the ones in the setup instructions where each config field is explained. <b>You may need to modify or add any new changes.</b>
 
 
 Credits
