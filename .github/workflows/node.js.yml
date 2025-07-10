@@ -2,9 +2,9 @@ name: Node.js CI
 
 on:
   push:
-    branches: [ "master", "dev"]
+    branches: [ "master", "dev" ]
   pull_request:
-    branches: [ "master", "dev"]
+    branches: [ "master", "dev" ]
 
 jobs:
   build:
@@ -19,9 +19,12 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
+
     - name: Run build
       run: npm install
+
     - name: Run test
       run: npm run test
+
     - name: Verify build and test
       run: echo "Build and test completed successfully!"
