@@ -14,17 +14,14 @@ jobs:
         node-version: [16.x]
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Install
-        run: npm install
-
-      - name: Start
-        run: npm start
-
-      - name: Verify
-        run: echo "Build completed successfully!"
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Run build
+      run: npm install
+    - name: Run test
+      run: npm run test
+    - name: Verify build and test
+      run: echo "Build and test completed successfully!"
